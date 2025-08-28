@@ -1,12 +1,18 @@
 {
   "version": 2,
-  "name": "uoa-options-scanner",
-  "functions": {
-    "Backend/main.py": {
-      "runtime": "python@3.10",
-      "maxDuration": 30
+  "builds": [
+    {
+      "src": "Backend/main.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "Frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
-  },
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
@@ -16,8 +22,5 @@
       "src": "/(.*)",
       "dest": "Frontend/dist/$1"
     }
-  ],
-  "env": {
-    "PYTHONPATH": "Backend"
-  }
+  ]
 }
