@@ -1,7 +1,10 @@
 import axios, { AxiosError } from 'axios';
 import { UOAResponse, ErrorResponse } from '../types/api';
 
-const API_BASE_URL = 'http://localhost:8000';
+// Auto-detect environment and set appropriate API URL
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'https://uoa-options-scanner.vercel.app'  // Production Vercel URL
+  : 'http://localhost:8000';  // Local development
 
 const api = axios.create({
   baseURL: API_BASE_URL,

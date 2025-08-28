@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "name": "uoa-options-scanner",
+  "builds": [
+    {
+      "src": "Frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "Backend/main.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "Backend/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "Frontend/dist/$1"
+    }
+  ],
+  "env": {
+    "PYTHONPATH": "Backend"
+  },
+  "functions": {
+    "Backend/main.py": {
+      "runtime": "python3.9",
+      "maxDuration": 30
+    }
+  }
+}
