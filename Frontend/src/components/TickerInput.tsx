@@ -28,15 +28,6 @@ interface TickerInputProps {
 const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
   const [ticker, setTicker] = useState<string>('');
   const [mode, setMode] = useState<string>('auto');
-  const [animationPhase, setAnimationPhase] = useState<number>(0);
-
-  // Animation cycle for background gradient
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setAnimationPhase(prev => (prev + 1) % 4);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,8 +50,7 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
   // Popular tickers for suggestion chips
   const popularTickers = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'META', 'GOOGL'];
 
-  // Dynamic gradient based on animation phase - Goldman Sachs Professional
-  // Note: Currently using static gradient, but keeping animationPhase for future use
+  // Using static gradient for professional appearance
 
   return (
     <Paper
