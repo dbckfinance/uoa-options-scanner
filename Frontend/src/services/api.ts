@@ -3,7 +3,7 @@ import { UOAResponse, ErrorResponse } from '../types/api';
 
 // Auto-detect environment and set appropriate API URL
 const API_BASE_URL = import.meta.env.PROD 
-  ? 'https://uoa-options-scanner.vercel.app'  // Production Vercel URL
+  ? ''  // Use relative URL in production (same domain)
   : 'http://localhost:8000';  // Local development
 
 const api = axios.create({
