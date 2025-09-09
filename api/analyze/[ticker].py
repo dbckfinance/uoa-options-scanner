@@ -370,53 +370,7 @@ def handler(request, event, context):
                 'body': json.dumps({'detail': 'Ticker parameter is required'})
             }
         
-        # Analyze the ticker
-        result = analyze_options_data(ticker, mode)
-        
-        # Convert result to dict for JSON serialization
-        result_dict = {
-            'ticker': result.ticker,
-            'analysisDate': result.analysisDate,
-            'underlyingPrice': result.underlyingPrice,
-            'totalContracts': result.totalContracts,
-            'unusualContracts': [
-                {
-                    'contractSymbol': c.contractSymbol,
-                    'strike': c.strike,
-                    'type': c.type,
-                    'expirationDate': c.expirationDate,
-                    'lastPrice': c.lastPrice,
-                    'volume': c.volume,
-                    'openInterest': c.openInterest,
-                    'volumeToOiRatio': c.volumeToOiRatio,
-                    'premiumSpent': c.premiumSpent,
-                    'underlyingPrice': c.underlyingPrice,
-                    'moneyness': c.moneyness,
-                    'distanceFromStrike': c.distanceFromStrike,
-                    'unusualityLevel': c.unusualityLevel,
-                    'daysToExpiration': c.daysToExpiration,
-                    'timeDecayRisk': c.timeDecayRisk,
-                    'strategicSignal': c.strategicSignal
-                } for c in result.unusualContracts
-            ],
-            'marketSentiment': {
-                'totalCallVolume': result.marketSentiment.totalCallVolume,
-                'totalPutVolume': result.marketSentiment.totalPutVolume,
-                'callPutRatio': result.marketSentiment.callPutRatio,
-                'bullishSignals': result.marketSentiment.bullishSignals,
-                'bearishSignals': result.marketSentiment.bearishSignals,
-                'netSentiment': result.marketSentiment.netSentiment
-            },
-            'topSignals': result.topSignals,
-            'riskWarnings': result.riskWarnings,
-            'dataQuality': {
-                'data_source': result.dataQuality.data_source,
-                'last_updated': result.dataQuality.last_updated,
-                'data_quality_score': result.dataQuality.data_quality_score,
-                'warnings': result.dataQuality.warnings
-            }
-        }
-        
+        # Simple test response first
         return {
             'statusCode': 200,
             'headers': {
@@ -425,7 +379,12 @@ def handler(request, event, context):
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
             },
-            'body': json.dumps(result_dict)
+            'body': json.dumps({
+                'ticker': ticker,
+                'mode': mode,
+                'message': 'API is working!',
+                'timestamp': datetime.now().isoformat()
+            })
         }
         
     except Exception as e:
@@ -438,5 +397,5 @@ def handler(request, event, context):
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
             },
-            'body': json.dumps({'detail': f'An error occurred while fetching data: {str(e)}'})
+            'body': json.dumps({'detail': f'An error occurred: {str(e)}'})
         }
