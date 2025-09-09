@@ -14,8 +14,25 @@ import json
 def handler(request, event, context):
     """Vercel serverless function handler"""
     try:
+        # Handle CORS preflight requests
+        if request.get('method') == 'OPTIONS':
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+                    'Access-Control-Max-Age': '86400'
+                },
+                'body': ''
+            }
+        
         # Extract ticker from path
         ticker = event.get('params', {}).get('ticker', '')
+        
+        # Extract query parameters
+        query_params = event.get('query', {})
+        mode = query_params.get('mode', 'auto')
         
         # Create a mock request for FastAPI
         class MockRequest:
@@ -24,15 +41,15 @@ def handler(request, event, context):
                 self.url = url
                 self.headers = headers
         
-        # Call the FastAPI app
-        response = app.get(f"/api/analyze/{ticker}")
+        # Call the FastAPI app with mode parameter
+        response = app.get(f"/api/analyze/{ticker}?mode={mode}")
         return {
             'statusCode': response.status_code,
             'headers': {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': '*'
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
             },
             'body': json.dumps(response.json())
         }
@@ -41,7 +58,9 @@ def handler(request, event, context):
             'statusCode': 500,
             'headers': {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
             },
             'body': json.dumps({'detail': str(e)})
         }
