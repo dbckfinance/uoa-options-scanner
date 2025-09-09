@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 import yfinance as yf
 import pandas as pd
 import configparser
+import os
 from datetime import datetime, timedelta
 from typing import List, Optional
 import logging
@@ -41,7 +42,44 @@ app.add_middleware(
 
 # Load configuration
 config = configparser.ConfigParser()
-config.read('config.ini')
+# Try multiple paths for config.ini (local development and Vercel deployment)
+config_paths = ['config.ini', 'Backend/config.ini', '/var/task/config.ini', '/var/task/Backend/config.ini']
+config_loaded = False
+
+for config_path in config_paths:
+    try:
+        if os.path.exists(config_path):
+            config.read(config_path)
+            config_loaded = True
+            logger.info(f"✅ Configuration loaded from: {config_path}")
+            break
+    except Exception as e:
+        logger.warning(f"Failed to load config from {config_path}: {e}")
+        continue
+
+if not config_loaded:
+    logger.warning("⚠️ No config.ini found, using default values")
+    # Create a default config if none found
+    config.add_section('FILTERING')
+    config.set('FILTERING', 'min_volume_oi_ratio', '2.5')
+    config.set('FILTERING', 'min_volume', '100')
+    config.set('FILTERING', 'min_open_interest', '25')
+    config.set('FILTERING', 'max_dte', '45')
+    config.set('FILTERING', 'min_dte', '1')
+    config.set('FILTERING', 'min_premium_spent', '25000.0')
+    config.set('FILTERING', 'max_results', '50')
+    
+    config.add_section('EXPERT_ANALYSIS')
+    config.set('EXPERT_ANALYSIS', 'atm_threshold', '0.05')
+    config.set('EXPERT_ANALYSIS', 'deep_otm_threshold', '0.15')
+    config.set('EXPERT_ANALYSIS', 'high_unusual_ratio', '5.0')
+    config.set('EXPERT_ANALYSIS', 'extreme_unusual_ratio', '8.0')
+    
+    config.add_section('IBKR_CONNECTION')
+    config.set('IBKR_CONNECTION', 'enable_ibkr', 'False')
+    config.set('IBKR_CONNECTION', 'use_ibkr_primary', 'False')
+    config.set('IBKR_CONNECTION', 'fallback_to_yfinance', 'True')
+    config.set('IBKR_CONNECTION', 'fallback_timeout', '5')
 
 # Get filtering parameters from config
 MIN_VOL_OI_RATIO = float(config.get('FILTERING', 'min_volume_oi_ratio', fallback=1.0))

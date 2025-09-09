@@ -1,10 +1,16 @@
 {
   "buildCommand": "cd Frontend && npm ci && npm run build",
   "outputDirectory": "Frontend/dist",
+  "functions": {
+    "api/index.py": {
+      "runtime": "python3.9",
+      "includeFiles": "Backend/**"
+    }
+  },
   "routes": [
     {
-      "src": "/api/analyze/(.*)",
-      "dest": "/api/analyze/[ticker].py"
+      "src": "/api/(.*)",
+      "dest": "/api/index.py"
     },
     {
       "src": "/(.*)",
