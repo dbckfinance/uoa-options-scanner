@@ -7,7 +7,6 @@ import {
   Typography,
   InputAdornment,
   Chip,
-  Avatar,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
@@ -51,7 +50,7 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
     setTicker(value);
   };
 
-  const handleModeChange = (event: React.MouseEvent<HTMLElement>, newMode: string | null) => {
+  const handleModeChange = (_event: React.MouseEvent<HTMLElement>, newMode: string | null) => {
     if (newMode !== null) {
       setMode(newMode);
     }
@@ -61,15 +60,7 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
   const popularTickers = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'META', 'GOOGL'];
 
   // Dynamic gradient based on animation phase - Goldman Sachs Professional
-  const getAnimatedGradient = () => {
-    const gradients = [
-      'linear-gradient(135deg, #7792b3 0%, #5f7a9a 50%, #212121 100%)',
-      'linear-gradient(135deg, #5f7a9a 0%, #7792b3 50%, #212121 100%)', 
-      'linear-gradient(135deg, #212121 0%, #7792b3 50%, #5f7a9a 100%)',
-      'linear-gradient(135deg, #7792b3 0%, #212121 50%, #5f7a9a 100%)'
-    ];
-    return gradients[animationPhase];
-  };
+  // Note: Currently using static gradient, but keeping animationPhase for future use
 
   return (
     <Paper
