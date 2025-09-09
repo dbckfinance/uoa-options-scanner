@@ -93,8 +93,11 @@ def initialize_ibkr_client():
             error_message=str(e)
         )
 
-# Initialize IBKR on startup
-initialize_ibkr_client()
+# Initialize IBKR on startup (only if enabled)
+if ENABLE_IBKR:
+    initialize_ibkr_client()
+else:
+    logger.info("IBKR disabled - using yfinance only")
 
 def calculate_dte(expiration_date: str) -> int:
     """Calculate days to expiration."""
@@ -539,10 +542,18 @@ def analyze_options_data(ticker_symbol: str, mode: str = "auto") -> UOAResponse:
                 detail=f"Could not fetch stock data for ticker '{ticker_symbol}'. Try these popular tickers instead: {suggestions}"
             )
         
-        # Method 2: Get options data using hybrid approach (IBKR + yfinance)
-        logger.info(f"📊 Getting options data for {ticker_symbol}...")
+        # Method 2: Get options data using yfinance only (IBKR disabled on Vercel)
+        logger.info(f"📊 Getting options data for {ticker_symbol} using yfinance...")
         try:
-            combined_df, data_source, quality_info = get_options_data_hybrid(ticker_symbol)
+            # Use yfinance directly since IBKR is disabled
+            combined_df = get_options_data_yfinance(ticker_symbol)
+            data_source = DataSource.YFINANCE
+            quality_info = {
+                "attempted_sources": ["yfinance"],
+                "successful_source": DataSource.YFINANCE,
+                "fallback_used": False,
+                "errors": []
+            }
             
             if combined_df.empty:
                 raise ValueError("No options data available from any source")
