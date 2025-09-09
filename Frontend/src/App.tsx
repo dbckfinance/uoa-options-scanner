@@ -13,61 +13,77 @@ import ResultsTable from './components/ResultsTable';
 import { fetchUoaData, ApiError } from './services/api';
 import { UOAResponse } from './types/api';
 
-// Ultra-modern, professional theme with enhanced animations
+// Goldman Sachs official colors theme
 const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#667eea',
-      light: '#8fa7ff',
-      dark: '#4f56c9',
+      main: '#7792b3', // Official Goldman Sachs blue
+      light: '#8fa3c4',
+      dark: '#5f7a9a',
     },
     secondary: {
-      main: '#764ba2',
-      light: '#a478d6',
-      dark: '#543770',
+      main: '#212121', // Goldman Sachs dark text
+      light: '#424242',
+      dark: '#000000',
     },
     background: {
-      default: '#f8fafc',
+      default: '#f7fafc',
       paper: '#ffffff',
     },
     success: {
-      main: '#4caf50',
+      main: '#4caf50', // Professional green
       light: '#81c784',
       dark: '#388e3c',
     },
     error: {
-      main: '#f44336',
+      main: '#f44336', // Professional red
       light: '#ef5350',
       dark: '#d32f2f',
+    },
+    warning: {
+      main: '#ff9800', // Professional orange
+      light: '#ffb74d',
+      dark: '#f57c00',
+    },
+    info: {
+      main: '#7792b3', // Goldman Sachs blue
+      light: '#8fa3c4',
+      dark: '#5f7a9a',
     },
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: { fontWeight: 800, letterSpacing: '-0.02em' },
-    h2: { fontWeight: 800, letterSpacing: '-0.02em' },
-    h3: { fontWeight: 700, letterSpacing: '-0.01em' },
-    h4: { fontWeight: 700, letterSpacing: '-0.01em' },
-    h5: { fontWeight: 600 },
-    h6: { fontWeight: 600 },
-    subtitle1: { fontWeight: 500 },
-    button: { fontWeight: 600, letterSpacing: '0.02em' },
+    h1: { fontWeight: 800, letterSpacing: '-0.02em', color: '#212121' },
+    h2: { fontWeight: 800, letterSpacing: '-0.02em', color: '#212121' },
+    h3: { fontWeight: 700, letterSpacing: '-0.01em', color: '#212121' },
+    h4: { fontWeight: 700, letterSpacing: '-0.01em', color: '#212121' },
+    h5: { fontWeight: 600, color: '#424242' },
+    h6: { fontWeight: 600, color: '#424242' },
+    subtitle1: { fontWeight: 500, color: '#4a5568' },
+    button: { fontWeight: 600, letterSpacing: '0.02em', textTransform: 'none' },
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 12,
           textTransform: 'none',
-          fontWeight: 700,
+          fontWeight: 600,
           padding: '12px 24px',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
             transform: 'translateY(-2px)',
-            boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+            boxShadow: '0 8px 25px rgba(26, 54, 93, 0.25)',
           },
           '&:active': {
             transform: 'translateY(0)',
+          },
+        },
+        contained: {
+          background: 'linear-gradient(135deg, #7792b3 0%, #5f7a9a 100%)',
+          '&:hover': {
+            background: 'linear-gradient(135deg, #5f7a9a 0%, #7792b3 100%)',
           },
         },
       },
@@ -75,15 +91,16 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 20,
+          borderRadius: 16,
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: '0 4px 20px rgba(119, 146, 179, 0.08)',
         },
       },
     },
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 8,
           fontWeight: 600,
           transition: 'all 0.2s ease',
           '&:hover': {
@@ -95,8 +112,9 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 12,
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: '0 2px 12px rgba(119, 146, 179, 0.1)',
         },
       },
     },
@@ -109,13 +127,13 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
 
-  const handleAnalyze = async (ticker: string) => {
+  const handleAnalyze = async (ticker: string, mode: string) => {
     setIsLoading(true);
     setError(null);
     setResults(null);
 
     try {
-      const data = await fetchUoaData(ticker);
+      const data = await fetchUoaData(ticker, mode);
       setResults(data);
       
       // Show success snackbar
@@ -144,9 +162,9 @@ const App: React.FC = () => {
       <Box
         sx={{
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #667eea 0%, #4facfe 25%, #00d4aa 50%, #5b73e8 75%, #2196f3 100%)',
+          background: 'linear-gradient(135deg, #7792b3 0%, #5f7a9a 25%, #212121 50%, #5f7a9a 75%, #7792b3 100%)',
           backgroundSize: '400% 400%',
-          animation: 'gradientShift 15s ease infinite',
+          animation: 'gradientShift 20s ease infinite',
           position: 'relative',
           py: 4,
           '&::before': {
@@ -156,7 +174,11 @@ const App: React.FC = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'radial-gradient(circle at 25% 25%, rgba(255,255,255,0.2) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(255,255,255,0.1) 0%, transparent 50%)',
+            background: `
+              radial-gradient(circle at 20% 20%, rgba(119, 146, 179, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(33, 33, 33, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 70%)
+            `,
             pointerEvents: 'none',
             zIndex: 0,
           },
@@ -167,7 +189,7 @@ const App: React.FC = () => {
           },
         }}
       >
-        {/* Floating Elements Background */}
+        {/* Floating Elements Background - Goldman Sachs Style */}
         <Box
           sx={{
             position: 'fixed',
@@ -180,29 +202,29 @@ const App: React.FC = () => {
             '&::before': {
               content: '""',
               position: 'absolute',
-              top: '10%',
-              left: '10%',
-              width: 100,
-              height: 100,
+              top: '15%',
+              left: '15%',
+              width: 120,
+              height: 120,
               borderRadius: '50%',
-              background: 'rgba(255,255,255,0.1)',
-              animation: 'float 6s ease-in-out infinite',
+              background: 'radial-gradient(circle, rgba(119, 146, 179, 0.2) 0%, rgba(119, 146, 179, 0.05) 50%, transparent 100%)',
+              animation: 'float 8s ease-in-out infinite',
             },
             '&::after': {
               content: '""',
               position: 'absolute',
-              bottom: '10%',
-              right: '10%',
-              width: 150,
-              height: 150,
+              bottom: '20%',
+              right: '20%',
+              width: 180,
+              height: 180,
               borderRadius: '50%',
-              background: 'rgba(255,255,255,0.08)',
-              animation: 'float 8s ease-in-out infinite reverse',
+              background: 'radial-gradient(circle, rgba(33, 33, 33, 0.15) 0%, rgba(33, 33, 33, 0.03) 50%, transparent 100%)',
+              animation: 'float 10s ease-in-out infinite reverse',
             },
             '@keyframes float': {
-              '0%, 100%': { transform: 'translate(0, 0) rotate(0deg)' },
-              '33%': { transform: 'translate(30px, -30px) rotate(120deg)' },
-              '66%': { transform: 'translate(-20px, 20px) rotate(240deg)' },
+              '0%, 100%': { transform: 'translate(0, 0) rotate(0deg) scale(1)' },
+              '33%': { transform: 'translate(40px, -40px) rotate(120deg) scale(1.1)' },
+              '66%': { transform: 'translate(-30px, 30px) rotate(240deg) scale(0.9)' },
             },
           }}
         />

@@ -24,9 +24,9 @@ export class ApiError extends Error {
 /**
  * Fetch unusual options activity data for a given ticker
  */
-export const fetchUoaData = async (ticker: string): Promise<UOAResponse> => {
+export const fetchUoaData = async (ticker: string, mode: string = 'auto'): Promise<UOAResponse> => {
   try {
-    const response = await api.get<UOAResponse>(`/api/analyze/${ticker.toUpperCase()}`);
+    const response = await api.get<UOAResponse>(`/api/analyze/${ticker.toUpperCase()}?mode=${mode}`);
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {

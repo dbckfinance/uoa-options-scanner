@@ -8,21 +8,27 @@ import {
   InputAdornment,
   Chip,
   Avatar,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
 } from '@mui/material';
 import { 
   Search as SearchIcon,
   TrendingUp,
   Analytics,
-  Speed
+  Speed,
+  FlashOn,
+  Assessment
 } from '@mui/icons-material';
 
 interface TickerInputProps {
-  onAnalyze: (ticker: string) => void;
+  onAnalyze: (ticker: string, mode: string) => void;
   isLoading: boolean;
 }
 
 const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
   const [ticker, setTicker] = useState<string>('');
+  const [mode, setMode] = useState<string>('auto');
   const [animationPhase, setAnimationPhase] = useState<number>(0);
 
   // Animation cycle for background gradient
@@ -36,7 +42,7 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (ticker.trim() && !isLoading) {
-      onAnalyze(ticker.trim().toUpperCase());
+      onAnalyze(ticker.trim().toUpperCase(), mode);
     }
   };
 
@@ -45,30 +51,40 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
     setTicker(value);
   };
 
+  const handleModeChange = (event: React.MouseEvent<HTMLElement>, newMode: string | null) => {
+    if (newMode !== null) {
+      setMode(newMode);
+    }
+  };
+
   // Popular tickers for suggestion chips
   const popularTickers = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'META', 'GOOGL'];
 
-  // Dynamic gradient based on animation phase - PROFESSIONAL BLUE-GREEN
+  // Dynamic gradient based on animation phase - Goldman Sachs Professional
   const getAnimatedGradient = () => {
     const gradients = [
-      'linear-gradient(135deg, #667eea 0%, #4facfe 50%, #00d4aa 100%)',
-      'linear-gradient(135deg, #2196f3 0%, #21cbf3 50%, #00bcd4 100%)', 
-      'linear-gradient(135deg, #00bcd4 0%, #4dd0e1 50%, #26a69a 100%)',
-      'linear-gradient(135deg, #5b73e8 0%, #3f51b5 50%, #2196f3 100%)'
+      'linear-gradient(135deg, #7792b3 0%, #5f7a9a 50%, #212121 100%)',
+      'linear-gradient(135deg, #5f7a9a 0%, #7792b3 50%, #212121 100%)', 
+      'linear-gradient(135deg, #212121 0%, #7792b3 50%, #5f7a9a 100%)',
+      'linear-gradient(135deg, #7792b3 0%, #212121 50%, #5f7a9a 100%)'
     ];
     return gradients[animationPhase];
   };
 
   return (
     <Paper
-      elevation={6}
+      elevation={0}
       sx={{
-        p: 4,
+        p: { xs: 3, sm: 4, md: 6 },
         mb: 4,
-        background: getAnimatedGradient(),
+        background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
         color: 'white',
         position: 'relative',
         overflow: 'hidden',
+        borderRadius: '24px',
+        border: '1px solid rgba(119, 146, 179, 0.2)',
+        backdropFilter: 'blur(20px)',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
         transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
         '&::before': {
           content: '""',
@@ -77,7 +93,7 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%)',
+          background: 'radial-gradient(circle at 30% 20%, rgba(119, 146, 179, 0.1) 0%, transparent 60%)',
           pointerEvents: 'none',
         },
         '&::after': {
@@ -87,85 +103,211 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.15) 0%, transparent 50%)',
+          background: 'radial-gradient(circle at 70% 80%, rgba(33, 33, 33, 0.3) 0%, transparent 60%)',
           pointerEvents: 'none',
         }
       }}
     >
-      {/* Header with Icons */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <Avatar 
-            sx={{ 
-              bgcolor: 'rgba(255,255,255,0.2)', 
-              animation: 'pulse 2s infinite',
-              '@keyframes pulse': {
-                '0%, 100%': { transform: 'scale(1)', opacity: 0.8 },
-                '50%': { transform: 'scale(1.1)', opacity: 1 },
+      {/* Institutional-Grade Header */}
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center',
+        mb: 4,
+        position: 'relative',
+      }}>
+        {/* Professional Badge */}
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          mb: 3,
+          px: 3,
+          py: 1,
+          borderRadius: '24px',
+          background: 'rgba(119, 146, 179, 0.15)',
+          border: '1px solid rgba(119, 146, 179, 0.3)',
+          backdropFilter: 'blur(20px)',
+        }}>
+          <Box sx={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: '#00ff88',
+            animation: 'pulse 2s infinite',
+            '@keyframes pulse': {
+              '0%, 100%': { opacity: 1 },
+              '50%': { opacity: 0.5 },
+            }
+          }} />
+          <Typography variant="caption" sx={{
+            color: 'rgba(255, 255, 255, 0.9)',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+          }}>
+            Live Market Data
+          </Typography>
+        </Box>
+
+        {/* Main Title - Institutional Style */}
+        <Typography
+          variant="h1"
+          component="h1"
+          sx={{
+            fontWeight: 300,
+            textAlign: 'center',
+            mb: 2,
+            color: '#ffffff',
+            fontSize: { xs: '2.8rem', sm: '3.5rem', md: '4.2rem' },
+            letterSpacing: '-0.02em',
+            lineHeight: 1.1,
+            fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
+          }}
+        >
+          UOA Scanner
+        </Typography>
+
+        {/* Subtitle with Professional Styling */}
+        <Typography
+          variant="h5"
+          sx={{
+            textAlign: 'center',
+            mb: 4,
+            color: 'rgba(255, 255, 255, 0.7)',
+            fontSize: '1.1rem',
+            fontWeight: 400,
+            letterSpacing: '0.02em',
+            lineHeight: 1.4,
+            maxWidth: '600px',
+            fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
+          }}
+        >
+          Institutional-grade options flow analysis for professional traders
+        </Typography>
+
+        {/* Feature Pills - Professional Grid */}
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+          gap: 2,
+          maxWidth: '800px',
+          width: '100%',
+        }}>
+          {[
+            { icon: TrendingUp, label: 'Real-time Flow Detection', desc: 'Millisecond latency' },
+            { icon: Analytics, label: 'Institutional Analytics', desc: 'Professional-grade data' },
+            { icon: Speed, label: 'Advanced Algorithms', desc: 'AI-powered insights' }
+          ].map((feature, index) => (
+            <Box key={index} sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              p: 2,
+              borderRadius: '12px',
+              background: 'rgba(119, 146, 179, 0.08)',
+              border: '1px solid rgba(119, 146, 179, 0.15)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: 'rgba(119, 146, 179, 0.12)',
+                transform: 'translateY(-2px)',
               }
-            }}
-          >
-            <TrendingUp />
-          </Avatar>
-          <Avatar 
-            sx={{ 
-              bgcolor: 'rgba(255,255,255,0.2)', 
-              animation: 'pulse 2s infinite 0.5s',
-              '@keyframes pulse': {
-                '0%, 100%': { transform: 'scale(1)', opacity: 0.8 },
-                '50%': { transform: 'scale(1.1)', opacity: 1 },
-              }
-            }}
-          >
-            <Analytics />
-          </Avatar>
-          <Avatar 
-            sx={{ 
-              bgcolor: 'rgba(255,255,255,0.2)', 
-              animation: 'pulse 2s infinite 1s',
-              '@keyframes pulse': {
-                '0%, 100%': { transform: 'scale(1)', opacity: 0.8 },
-                '50%': { transform: 'scale(1.1)', opacity: 1 },
-              }
-            }}
-          >
-            <Speed />
-          </Avatar>
+            }}>
+              <Box sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '10px',
+                background: 'rgba(119, 146, 179, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <feature.icon sx={{ color: 'white', fontSize: '1.2rem' }} />
+              </Box>
+              <Box>
+                <Typography variant="body2" sx={{
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  mb: 0.5,
+                }}>
+                  {feature.label}
+                </Typography>
+                <Typography variant="caption" sx={{
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontSize: '0.75rem',
+                }}>
+                  {feature.desc}
+                </Typography>
+              </Box>
+            </Box>
+          ))}
         </Box>
       </Box>
 
-      <Typography
-        variant="h3"
-        component="h1"
-        gutterBottom
-        sx={{
-          fontWeight: 700,
-          textAlign: 'center',
-          mb: 1,
-          background: 'linear-gradient(45deg, #ffffff 30%, rgba(255,255,255,0.8) 100%)',
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          letterSpacing: '-0.5px',
-        }}
-      >
-        UOA Scanner Pro
-      </Typography>
-      
-      <Typography
-        variant="subtitle1"
-        sx={{
-          textAlign: 'center',
-          mb: 3,
-          opacity: 0.95,
-          fontSize: '1.1rem',
-          fontWeight: 300,
-          letterSpacing: '0.5px',
-        }}
-      >
-        🚀 Advanced Options Flow Analysis • Real-time Smart Money Detection
-      </Typography>
+      {/* Mode Toggle */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+        <ToggleButtonGroup
+          value={mode}
+          exclusive
+          onChange={handleModeChange}
+          disabled={isLoading}
+          sx={{
+            bgcolor: 'rgba(119, 146, 179, 0.2)',
+            borderRadius: '16px',
+            border: '2px solid rgba(119, 146, 179, 0.4)',
+            '& .MuiToggleButton-root': {
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              px: 3,
+              py: 1,
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                bgcolor: 'rgba(119, 146, 179, 0.3)',
+                transform: 'translateY(-1px)',
+              },
+              '&.Mui-selected': {
+                bgcolor: 'rgba(119, 146, 179, 0.5)',
+                color: 'white',
+                fontWeight: 700,
+                '&:hover': {
+                  bgcolor: 'rgba(119, 146, 179, 0.6)',
+                },
+              },
+            },
+          }}
+        >
+          <Tooltip title="Auto-detect based on market activity" arrow>
+            <ToggleButton value="auto">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Speed sx={{ fontSize: '1.1rem' }} />
+                Auto
+              </Box>
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="Live Trading - Volume-based analysis (Market Open)" arrow>
+            <ToggleButton value="live">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <FlashOn sx={{ fontSize: '1.1rem' }} />
+                Live Trading
+              </Box>
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="Position Analysis - Open Interest-based analysis (Pre-market)" arrow>
+            <ToggleButton value="position">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Assessment sx={{ fontSize: '1.1rem' }} />
+                Position Analysis
+              </Box>
+            </ToggleButton>
+          </Tooltip>
+        </ToggleButtonGroup>
+      </Box>
 
       {/* Popular Tickers Chips */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
@@ -175,17 +317,18 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
             label={symbol}
             onClick={() => !isLoading && setTicker(symbol)}
             sx={{
-              bgcolor: 'rgba(255,255,255,0.15)',
+              bgcolor: 'rgba(119, 146, 179, 0.2)',
               color: 'white',
-              border: '1px solid rgba(255,255,255,0.3)',
+              border: '2px solid rgba(119, 146, 179, 0.4)',
               fontSize: '0.85rem',
               fontWeight: 600,
               cursor: isLoading ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s ease',
               '&:hover': {
-                bgcolor: isLoading ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.25)',
+                bgcolor: isLoading ? 'rgba(119, 146, 179, 0.2)' : 'rgba(119, 146, 179, 0.4)',
                 transform: isLoading ? 'none' : 'translateY(-2px)',
-                boxShadow: isLoading ? 'none' : '0 4px 12px rgba(0,0,0,0.2)',
+                boxShadow: isLoading ? 'none' : '0 4px 12px rgba(119, 146, 179, 0.3)',
+                border: '2px solid rgba(119, 146, 179, 0.6)',
               },
             }}
           />
@@ -224,7 +367,7 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'rgba(0, 0, 0, 0.5)', fontSize: '1.5rem' }} />
+                <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1.5rem' }} />
               </InputAdornment>
             ),
           }}
@@ -235,19 +378,19 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
               height: '64px',
               fontSize: '1.2rem',
               backdropFilter: 'blur(10px)',
-              border: '2px solid rgba(255,255,255,0.2)',
+              border: '2px solid rgba(119, 146, 179, 0.3)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               '&:hover': {
                 backgroundColor: 'rgba(255, 255, 255, 1)',
                 transform: 'translateY(-2px)',
-                boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-                border: '2px solid rgba(255,255,255,0.4)',
+                boxShadow: '0 8px 25px rgba(119, 146, 179, 0.2)',
+                border: '2px solid rgba(119, 146, 179, 0.5)',
               },
               '&.Mui-focused': {
                 backgroundColor: 'rgba(255, 255, 255, 1)',
                 transform: 'translateY(-2px)',
-                boxShadow: '0 12px 35px rgba(0,0,0,0.2)',
-                border: '2px solid rgba(255,255,255,0.6)',
+                boxShadow: '0 12px 35px rgba(119, 146, 179, 0.3)',
+                border: '2px solid rgba(119, 146, 179, 0.7)',
               },
             },
           }}
@@ -262,8 +405,8 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
             minWidth: 150,
             height: 64,
             borderRadius: '16px',
-            bgcolor: 'rgba(255, 255, 255, 0.2)',
-            border: '2px solid rgba(255, 255, 255, 0.4)',
+            bgcolor: 'rgba(119, 146, 179, 0.3)',
+            border: '2px solid rgba(119, 146, 179, 0.6)',
             color: 'white',
             fontWeight: 700,
             fontSize: '1.1rem',
@@ -279,14 +422,14 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
               left: '-100%',
               width: '100%',
               height: '100%',
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
               transition: 'left 0.5s',
             },
             '&:hover': {
-              bgcolor: 'rgba(255, 255, 255, 0.3)',
-              border: '2px solid rgba(255, 255, 255, 0.6)',
+              bgcolor: 'rgba(119, 146, 179, 0.5)',
+              border: '2px solid rgba(119, 146, 179, 0.8)',
               transform: 'translateY(-3px)',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              boxShadow: '0 10px 25px rgba(119, 146, 179, 0.3)',
               '&::before': {
                 left: '100%',
               },
@@ -295,8 +438,8 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
               transform: 'translateY(-1px)',
             },
             '&:disabled': {
-              bgcolor: 'rgba(255, 255, 255, 0.1)',
-              border: '2px solid rgba(255, 255, 255, 0.2)',
+              bgcolor: 'rgba(119, 146, 179, 0.1)',
+              border: '2px solid rgba(119, 146, 179, 0.3)',
               color: 'rgba(255, 255, 255, 0.5)',
               transform: 'none',
               boxShadow: 'none',
@@ -342,7 +485,9 @@ const TickerInput: React.FC<TickerInputProps> = ({ onAnalyze, isLoading }) => {
             },
           }}
         >
-          ⚡ Ready to scan <strong>{ticker}</strong> for unusual options activity
+          {mode === 'live' && '🔴 Ready to scan <strong>{ticker}</strong> for live trading activity (Volume-based)'}
+          {mode === 'position' && '🔵 Ready to scan <strong>{ticker}</strong> for position analysis (Open Interest-based)'}
+          {mode === 'auto' && '🤖 Ready to scan <strong>{ticker}</strong> for unusual options activity (Auto-detect mode)'}
         </Typography>
       )}
     </Paper>

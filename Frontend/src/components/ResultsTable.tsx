@@ -79,9 +79,9 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
 
   const getSignalColor = () => {
     const strength = getSignalStrength();
-    if (strength === 'EXTREME') return '#dc2626'; // Professional red
-    if (strength === 'HIGH') return '#d97706';    // Professional orange
-    return '#1e40af';                             // Professional blue
+    if (strength === 'EXTREME') return '#5f7a9a'; // Goldman Sachs dark blue
+    if (strength === 'HIGH') return '#8fa3c4';    // Goldman Sachs light blue
+    return '#7792b3';                             // Goldman Sachs blue
   };
 
   return (
@@ -104,11 +104,11 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
             transform: 'translateY(0)',
           },
         },
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: `0 12px 40px rgba(${isCall ? '76, 175, 80' : '244, 67, 54'}, 0.3)`,
-          borderColor: isCall ? '#4caf50' : '#f44336',
-        },
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: `0 12px 40px rgba(${isCall ? '143, 163, 196' : '95, 122, 154'}, 0.3)`,
+            borderColor: isCall ? '#8fa3c4' : '#5f7a9a',
+          },
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -116,7 +116,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
           left: 0,
           width: '4px',
           height: '100%',
-          background: `linear-gradient(180deg, ${isCall ? '#4caf50' : '#f44336'}, ${isCall ? '#81c784' : '#ef5350'})`,
+          background: `linear-gradient(180deg, ${isCall ? '#8fa3c4' : '#5f7a9a'}, ${isCall ? '#7792b3' : '#8fa3c4'})`,
         }
       }}
     >
@@ -126,13 +126,13 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar
               sx={{
-                bgcolor: isCall ? '#4caf50' : '#f44336',
+                bgcolor: isCall ? '#8fa3c4' : '#5f7a9a',
                 width: 48,
                 height: 48,
                 animation: 'pulse 2s infinite',
                 '@keyframes pulse': {
-                  '0%, 100%': { boxShadow: `0 0 0 0 ${isCall ? 'rgba(76, 175, 80, 0.7)' : 'rgba(244, 67, 54, 0.7)'}` },
-                  '50%': { boxShadow: `0 0 0 8px ${isCall ? 'rgba(76, 175, 80, 0)' : 'rgba(244, 67, 54, 0)'}` },
+                  '0%, 100%': { boxShadow: `0 0 0 0 ${isCall ? 'rgba(143, 163, 196, 0.7)' : 'rgba(95, 122, 154, 0.7)'}` },
+                  '50%': { boxShadow: `0 0 0 8px ${isCall ? 'rgba(143, 163, 196, 0)' : 'rgba(95, 122, 154, 0)'}` },
                 },
               }}
             >
@@ -140,7 +140,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
             </Avatar>
             
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: '#2d3748' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: 'white' }}>
                 ${contract.strike} {contract.type.toUpperCase()}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
@@ -174,21 +174,21 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
             <Box sx={{ 
               textAlign: 'center', 
               p: 2.5, 
-              background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)',
+              background: 'linear-gradient(135deg, rgba(26, 54, 93, 0.1) 0%, rgba(45, 74, 105, 0.05) 100%)',
               borderRadius: '16px',
-              border: '2px solid rgba(30, 58, 138, 0.15)',
+              border: '2px solid rgba(26, 54, 93, 0.15)',
               position: 'relative',
               cursor: 'pointer',
               overflow: 'hidden',
               transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               animation: `metricSlideIn 0.6s ease-out ${0 * 0.1}s both`,
               backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(30, 58, 138, 0.1)',
+              boxShadow: '0 4px 20px rgba(26, 54, 93, 0.1)',
               '&:hover': { 
-                bgcolor: 'rgba(30, 58, 138, 0.08)',
+                bgcolor: 'rgba(26, 54, 93, 0.08)',
                 transform: 'translateY(-4px) scale(1.02)',
-                boxShadow: '0 12px 35px rgba(30, 58, 138, 0.25)',
-                border: '2px solid rgba(30, 58, 138, 0.3)',
+                boxShadow: '0 12px 35px rgba(26, 54, 93, 0.25)',
+                border: '2px solid rgba(26, 54, 93, 0.3)',
                 '&::before': {
                   opacity: 1,
                 },
@@ -215,7 +215,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
                 <Avatar sx={{ 
-                  bgcolor: 'rgba(30, 58, 138, 0.15)', 
+                  bgcolor: 'rgba(26, 54, 93, 0.15)', 
                   width: 36, 
                   height: 36,
                   animation: 'pulse 2s infinite',
@@ -224,7 +224,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
                     '50%': { transform: 'scale(1.1)', opacity: 1 },
                   },
                 }}>
-                  <RatioIcon sx={{ fontSize: '1.2rem', color: '#1e3a8a' }} />
+                  <RatioIcon sx={{ fontSize: '1.2rem', color: '#1a365d' }} />
                 </Avatar>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ 
@@ -238,7 +238,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
               </Typography>
               <Typography variant="h5" sx={{ 
                 fontWeight: 800, 
-                color: getSignalColor(),
+                color: '#212121',
                 fontSize: '1.5rem',
                 textShadow: '0 2px 4px rgba(0,0,0,0.1)',
               }}>
@@ -252,21 +252,21 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
             <Box sx={{ 
               textAlign: 'center', 
               p: 2.5, 
-              background: 'linear-gradient(135deg, rgba(15, 118, 110, 0.1) 0%, rgba(20, 184, 166, 0.05) 100%)',
+              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(230, 197, 71, 0.05) 100%)',
               borderRadius: '16px',
-              border: '2px solid rgba(15, 118, 110, 0.15)',
+              border: '2px solid rgba(212, 175, 55, 0.15)',
               position: 'relative',
               cursor: 'pointer',
               overflow: 'hidden',
               transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               animation: `metricSlideIn 0.6s ease-out ${1 * 0.1}s both`,
               backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(15, 118, 110, 0.1)',
+              boxShadow: '0 4px 20px rgba(212, 175, 55, 0.1)',
               '&:hover': { 
-                bgcolor: 'rgba(15, 118, 110, 0.08)',
+                bgcolor: 'rgba(212, 175, 55, 0.08)',
                 transform: 'translateY(-4px) scale(1.02)',
-                boxShadow: '0 12px 35px rgba(15, 118, 110, 0.25)',
-                border: '2px solid rgba(15, 118, 110, 0.3)',
+                boxShadow: '0 12px 35px rgba(212, 175, 55, 0.25)',
+                border: '2px solid rgba(212, 175, 55, 0.3)',
                 '&::before': {
                   opacity: 1,
                 },
@@ -289,7 +289,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
                 <Avatar sx={{ 
-                  bgcolor: 'rgba(15, 118, 110, 0.15)', 
+                  bgcolor: 'rgba(212, 175, 55, 0.15)', 
                   width: 36, 
                   height: 36,
                   animation: 'pulse 2s infinite 0.3s',
@@ -298,7 +298,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
                     '50%': { transform: 'scale(1.1)', opacity: 1 },
                   },
                 }}>
-                  <MoneyIcon sx={{ fontSize: '1.2rem', color: '#0f766e' }} />
+                  <MoneyIcon sx={{ fontSize: '1.2rem', color: '#d4af37' }} />
                 </Avatar>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ 
@@ -312,7 +312,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
               </Typography>
               <Typography variant="h5" sx={{ 
                 fontWeight: 800, 
-                color: '#0f766e',
+                color: '#212121',
                 fontSize: '1.5rem',
                 textShadow: '0 2px 4px rgba(0,0,0,0.1)',
               }}>
@@ -386,7 +386,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
               </Typography>
               <Typography variant="h5" sx={{ 
                 fontWeight: 800, 
-                color: '#4b5563',
+                color: '#212121',
                 fontSize: '1.5rem',
                 textShadow: '0 2px 4px rgba(0,0,0,0.1)',
               }}>
@@ -400,21 +400,21 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
             <Box sx={{ 
               textAlign: 'center', 
               p: 2.5, 
-              background: 'linear-gradient(135deg, rgba(55, 48, 163, 0.1) 0%, rgba(79, 70, 229, 0.05) 100%)',
+              background: 'linear-gradient(135deg, rgba(49, 130, 206, 0.1) 0%, rgba(99, 179, 237, 0.05) 100%)',
               borderRadius: '16px',
-              border: '2px solid rgba(55, 48, 163, 0.15)',
+              border: '2px solid rgba(49, 130, 206, 0.15)',
               position: 'relative',
               cursor: 'pointer',
               overflow: 'hidden',
               transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               animation: `metricSlideIn 0.6s ease-out ${3 * 0.1}s both`,
               backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(55, 48, 163, 0.1)',
+              boxShadow: '0 4px 20px rgba(49, 130, 206, 0.1)',
               '&:hover': { 
-                bgcolor: 'rgba(55, 48, 163, 0.08)',
+                bgcolor: 'rgba(49, 130, 206, 0.08)',
                 transform: 'translateY(-4px) scale(1.02)',
-                boxShadow: '0 12px 35px rgba(55, 48, 163, 0.25)',
-                border: '2px solid rgba(55, 48, 163, 0.3)',
+                boxShadow: '0 12px 35px rgba(49, 130, 206, 0.25)',
+                border: '2px solid rgba(49, 130, 206, 0.3)',
                 '&::before': {
                   opacity: 1,
                 },
@@ -437,7 +437,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
                 <Avatar sx={{ 
-                  bgcolor: 'rgba(55, 48, 163, 0.15)', 
+                  bgcolor: 'rgba(49, 130, 206, 0.15)', 
                   width: 36, 
                   height: 36,
                   animation: 'pulse 2s infinite 0.9s',
@@ -446,7 +446,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
                     '50%': { transform: 'scale(1.1)', opacity: 1 },
                   },
                 }}>
-                  <PriceIcon sx={{ fontSize: '1.2rem', color: '#3730a3' }} />
+                  <PriceIcon sx={{ fontSize: '1.2rem', color: '#3182ce' }} />
                 </Avatar>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ 
@@ -460,7 +460,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
               </Typography>
               <Typography variant="h5" sx={{ 
                 fontWeight: 800, 
-                color: '#3730a3',
+                color: '#212121',
                 fontSize: '1.5rem',
                 textShadow: '0 2px 4px rgba(0,0,0,0.1)',
               }}>
@@ -516,7 +516,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
                     label="SHORT DTE" 
                     size="small" 
                     sx={{ 
-                      bgcolor: '#d97706', 
+                      bgcolor: '#8fa3c4', 
                       color: 'white', 
                       fontWeight: 600,
                       fontSize: '0.75rem'
@@ -528,7 +528,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
                     label="BIG MONEY" 
                     size="small" 
                     sx={{ 
-                      bgcolor: '#dc2626', 
+                      bgcolor: '#5f7a9a', 
                       color: 'white', 
                       fontWeight: 600,
                       fontSize: '0.75rem'
@@ -540,7 +540,7 @@ const OptionCard: React.FC<{ contract: OptionContract; index: number }> = ({ con
                     label="HOT FLOW" 
                     size="small" 
                     sx={{ 
-                      bgcolor: '#1e40af', 
+                      bgcolor: '#7792b3', 
                       color: 'white', 
                       fontWeight: 600,
                       fontSize: '0.75rem'
@@ -719,6 +719,13 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data, isLoading, error }) =
   }
 
   if (data.unusualContracts.length === 0) {
+    // Determine mode based on topSignals
+    const isPositionMode = data.topSignals?.some(signal => signal.includes('POSITION ANALYSIS')) || false;
+    const modeText = isPositionMode ? 'No Significant Positions' : 'No Unusual Activity';
+    const descriptionText = isPositionMode 
+      ? `No significant options positions for ${data.ticker} meet our analysis criteria`
+      : `No options contracts for ${data.ticker} meet our smart money criteria`;
+
     return (
       <Paper 
         elevation={3} 
@@ -734,7 +741,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data, isLoading, error }) =
             sx={{
               width: 80,
               height: 80,
-              bgcolor: '#667eea',
+              bgcolor: isPositionMode ? '#8b5cf6' : '#667eea',
               mx: 'auto',
               mb: 2,
               animation: 'bounce 1s ease-in-out infinite',
@@ -746,11 +753,29 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data, isLoading, error }) =
           >
             <InfoIcon fontSize="large" />
           </Avatar>
+          
+          {/* Mode Indicator */}
+          <Chip
+            label={isPositionMode ? 'POSITION ANALYSIS MODE' : 'LIVE TRADING MODE'}
+            sx={{
+              bgcolor: isPositionMode ? '#8b5cf6' : '#667eea',
+              color: 'white',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              mb: 2,
+              animation: 'pulse 2s ease-in-out infinite',
+              '@keyframes pulse': {
+                '0%, 100%': { opacity: 0.8 },
+                '50%': { opacity: 1 },
+              },
+            }}
+          />
+          
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#2d3748' }}>
-            No Unusual Activity
+            {modeText}
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem', mb: 2 }}>
-            No options contracts for <strong>{data.ticker}</strong> meet our smart money criteria
+            {descriptionText}
           </Typography>
           
           {/* Stats Chips */}
@@ -767,6 +792,19 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data, isLoading, error }) =
               color="secondary"
               sx={{ fontSize: '1rem', p: 1 }}
             />
+            {isPositionMode && (
+              <Chip
+                icon={<TimeIcon />}
+                label="Pre-Market Analysis"
+                sx={{ 
+                  bgcolor: '#8b5cf6', 
+                  color: 'white', 
+                  fontSize: '1rem', 
+                  p: 1,
+                  fontWeight: 600
+                }}
+              />
+            )}
           </Box>
         </Box>
       </Paper>
@@ -779,20 +817,26 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data, isLoading, error }) =
   const totalPremium = data.unusualContracts.reduce((sum, c) => sum + c.premiumSpent, 0);
   const avgRatio = data.unusualContracts.reduce((sum, c) => sum + c.volumeToOiRatio, 0) / data.unusualContracts.length;
   const extremeFlows = data.unusualContracts.filter(c => c.volumeToOiRatio >= 6).length;
+  
+  // Determine mode
+  const isPositionMode = data.topSignals?.some(signal => signal.includes('POSITION ANALYSIS')) || false;
 
   return (
     <Box sx={{ position: 'relative' }}>
       {/* Modern Header with Stats */}
       <Paper
-        elevation={6}
+        elevation={0}
         sx={{
-          p: 4,
+          p: { xs: 3, sm: 4, md: 5 },
           mb: 4,
-          background: 'linear-gradient(135deg, #667eea 0%, #4facfe 100%)',
+          background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
           color: 'white',
-          borderRadius: '20px',
+          borderRadius: '24px',
           position: 'relative',
           overflow: 'hidden',
+          border: '1px solid rgba(119, 146, 179, 0.2)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
         }}
       >
         <Box
@@ -802,120 +846,293 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data, isLoading, error }) =
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 50%)',
+            background: 'radial-gradient(circle at 30% 20%, rgba(119, 146, 179, 0.1) 0%, transparent 60%)',
             pointerEvents: 'none',
           }}
         />
         
         <Box sx={{ position: 'relative', zIndex: 1 }}>
-          <Typography 
-            variant="h3" 
-            gutterBottom 
-            sx={{ 
-              fontWeight: 700, 
+          {/* Premium Status Badge */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              px: 4,
+              py: 1.5,
+              borderRadius: '32px',
+              background: 'rgba(119, 146, 179, 0.12)',
+              border: '1px solid rgba(119, 146, 179, 0.25)',
+              backdropFilter: 'blur(24px)',
+              boxShadow: '0 8px 32px rgba(119, 146, 179, 0.15)',
+            }}>
+              <Box sx={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                background: 'linear-gradient(45deg, #00ff88, #00cc6a)',
+                animation: 'pulse 2s infinite',
+                boxShadow: '0 0 12px rgba(0, 255, 136, 0.4)',
+                '@keyframes pulse': {
+                  '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                  '50%': { opacity: 0.7, transform: 'scale(1.1)' },
+                }
+              }} />
+              <Typography variant="caption" sx={{
+                color: 'rgba(255, 255, 255, 0.95)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                letterSpacing: '0.8px',
+                textTransform: 'uppercase',
+                fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
+              }}>
+                {isPositionMode ? 'Position Analysis Mode' : 'Live Trading Mode'}
+              </Typography>
+            </Box>
+          </Box>
+          
+          {/* Premium Main Title */}
+          <Typography
+            variant="h1"
+            component="h1"
+            sx={{
+              fontWeight: 200,
               textAlign: 'center',
-              background: 'linear-gradient(45deg, #ffffff 30%, rgba(255,255,255,0.8) 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              mb: 5,
+              color: '#ffffff',
+              fontSize: { xs: '2.8rem', sm: '3.6rem', md: '4.2rem' },
+              letterSpacing: '-0.03em',
+              lineHeight: 1.05,
+              fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
+              textShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
             }}
           >
-            {data.ticker} Options Flow
+            {data.ticker} {isPositionMode ? 'Position Analysis' : 'Options Flow'}
           </Typography>
           
-          {/* Stats Grid */}
-          <Grid container spacing={3} sx={{ mt: 2 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                  {data.unusualContracts.length}
-                </Typography>
-                <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                  🔥 Unusual Flows
-                </Typography>
-              </Box>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                  {formatLargeCurrency(totalPremium)}
-                </Typography>
-                <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                  💰 Total Premium
-                </Typography>
-              </Box>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: callContracts.length > putContracts.length ? '#4caf50' : '#f44336' }}>
-                  {callContracts.length}C / {putContracts.length}P
-                </Typography>
-                <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                  📊 Call/Put Split
-                </Typography>
-              </Box>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                  {avgRatio.toFixed(1)}x
-                </Typography>
-                <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                  ⚡ Avg Vol/OI
-                </Typography>
-              </Box>
-            </Grid>
+          {/* Premium Metrics Grid */}
+          <Grid container spacing={4} sx={{ mt: 3 }}>
+            {[
+              { 
+                value: data.unusualContracts.length, 
+                label: isPositionMode ? 'Significant Positions' : 'Unusual Flows',
+                color: '#ffffff'
+              },
+              { 
+                value: formatLargeCurrency(totalPremium), 
+                label: 'Total Premium',
+                color: '#ffffff'
+              },
+              { 
+                value: `${callContracts.length}C / ${putContracts.length}P`, 
+                label: 'Call/Put Split',
+                color: '#ffffff'
+              },
+              { 
+                value: `${avgRatio.toFixed(1)}x`, 
+                label: 'Avg Vol/OI',
+                color: '#ffffff'
+              }
+            ].map((metric, index) => (
+              <Grid item xs={12} sm={6} md={3} key={index}>
+                <Box sx={{
+                  textAlign: 'center',
+                  p: 4,
+                  borderRadius: '20px',
+                  background: 'rgba(119, 146, 179, 0.06)',
+                  border: '1px solid rgba(119, 146, 179, 0.12)',
+                  backdropFilter: 'blur(20px)',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(135deg, rgba(119, 146, 179, 0.05) 0%, transparent 100%)',
+                    opacity: 0,
+                    transition: 'opacity 0.4s ease',
+                  },
+                  '&:hover': {
+                    background: 'rgba(119, 146, 179, 0.1)',
+                    transform: 'translateY(-4px)',
+                    border: '1px solid rgba(119, 146, 179, 0.2)',
+                    boxShadow: '0 20px 40px rgba(119, 146, 179, 0.15)',
+                    '&::before': {
+                      opacity: 1,
+                    },
+                  }
+                }}>
+                  <Typography variant="h2" sx={{ 
+                    fontWeight: 200, 
+                    mb: 2, 
+                    color: metric.color,
+                    fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+                    letterSpacing: '-0.04em',
+                    fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
+                    textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  }}>
+                    {metric.value}
+                  </Typography>
+                  <Typography variant="body2" sx={{ 
+                    opacity: 0.85, 
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
+                  }}>
+                    {metric.label}
+                  </Typography>
+                </Box>
+              </Grid>
+            ))}
           </Grid>
 
-          {/* Quick Indicators */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 3, flexWrap: 'wrap' }}>
-            <Chip
-              label={formatCurrency(data.underlyingPrice)}
-              sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '1rem', fontWeight: 600 }}
-            />
+          {/* Premium Indicators */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            gap: 3, 
+            mt: 5, 
+            flexWrap: 'wrap' 
+          }}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              px: 4,
+              py: 2,
+              borderRadius: '24px',
+              background: 'rgba(119, 146, 179, 0.1)',
+              border: '1px solid rgba(119, 146, 179, 0.2)',
+              backdropFilter: 'blur(24px)',
+              boxShadow: '0 8px 32px rgba(119, 146, 179, 0.1)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: 'rgba(119, 146, 179, 0.15)',
+                transform: 'translateY(-2px)',
+                boxShadow: '0 12px 40px rgba(119, 146, 179, 0.15)',
+              }
+            }}>
+              <Typography variant="body2" sx={{
+                color: 'rgba(255, 255, 255, 0.85)',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
+              }}>
+                Current Price
+              </Typography>
+              <Typography variant="h5" sx={{
+                color: '#ffffff',
+                fontSize: '1.3rem',
+                fontWeight: 300,
+                fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
+                letterSpacing: '-0.02em',
+              }}>
+                {formatCurrency(data.underlyingPrice)}
+              </Typography>
+            </Box>
+            
             {extremeFlows > 0 && (
-              <Chip
-                label={`${extremeFlows} EXTREME FLOWS`}
-                sx={{ 
-                  bgcolor: '#dc2626', 
-                  color: 'white', 
-                  fontSize: '1rem', 
-                  fontWeight: 700,
-                  animation: 'glow 2s ease-in-out infinite alternate',
-                  border: '1px solid rgba(220, 38, 38, 0.3)',
-                  '@keyframes glow': {
-                    from: { boxShadow: '0 0 5px rgba(220, 38, 38, 0.5)' },
-                    to: { boxShadow: '0 0 20px rgba(220, 38, 38, 0.8)' },
-                  },
-                }}
-              />
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 3,
+                py: 1.5,
+                borderRadius: '20px',
+                background: 'rgba(95, 122, 154, 0.2)',
+                border: '1px solid rgba(95, 122, 154, 0.4)',
+                backdropFilter: 'blur(20px)',
+              }}>
+                <Box sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#5f7a9a',
+                  animation: 'pulse 2s infinite',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1 },
+                    '50%': { opacity: 0.5 },
+                  }
+                }} />
+                <Typography variant="body2" sx={{
+                  color: '#ffffff',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  textTransform: 'uppercase',
+                }}>
+                  {extremeFlows} EXTREME FLOWS
+                </Typography>
+              </Box>
             )}
+            
             {callContracts.length > putContracts.length * 2 && (
-              <Chip
-                label="BULLISH BIAS"
-                sx={{ 
-                  bgcolor: '#059669', 
-                  color: 'white', 
-                  fontSize: '1rem', 
-                  fontWeight: 700,
-                  border: '1px solid rgba(5, 150, 105, 0.3)' 
-                }}
-              />
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 3,
+                py: 1.5,
+                borderRadius: '20px',
+                background: 'rgba(143, 163, 196, 0.2)',
+                border: '1px solid rgba(143, 163, 196, 0.4)',
+                backdropFilter: 'blur(20px)',
+              }}>
+                <Box sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#8fa3c4',
+                }} />
+                <Typography variant="body2" sx={{
+                  color: '#ffffff',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  textTransform: 'uppercase',
+                }}>
+                  BULLISH BIAS
+                </Typography>
+              </Box>
             )}
+            
             {putContracts.length > callContracts.length * 2 && (
-              <Chip
-                label="BEARISH BIAS"
-                sx={{ 
-                  bgcolor: '#dc2626', 
-                  color: 'white', 
-                  fontSize: '1rem', 
-                  fontWeight: 700,
-                  border: '1px solid rgba(220, 38, 38, 0.3)' 
-                }}
-              />
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 3,
+                py: 1.5,
+                borderRadius: '20px',
+                background: 'rgba(95, 122, 154, 0.2)',
+                border: '1px solid rgba(95, 122, 154, 0.4)',
+                backdropFilter: 'blur(20px)',
+              }}>
+                <Box sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#5f7a9a',
+                }} />
+                <Typography variant="body2" sx={{
+                  color: '#ffffff',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  textTransform: 'uppercase',
+                }}>
+                  BEARISH BIAS
+                </Typography>
+              </Box>
             )}
           </Box>
         </Box>
@@ -940,30 +1157,50 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data, isLoading, error }) =
         }}
       >
         <Typography variant="h6" gutterBottom sx={{ color: '#2d3748', fontWeight: 600 }}>
-          📋 Analysis Criteria
+          📋 {isPositionMode ? 'Position Analysis Criteria' : 'Analysis Criteria'}
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
             <Typography variant="body2" color="text.secondary">
-              <strong>Smart Money Threshold:</strong><br />
-              • Volume/OI Ratio ≥ 2.5x<br />
-              • Premium Spent ≥ $25,000<br />
-              • Minimum Volume: 100 contracts
+              <strong>{isPositionMode ? 'Position Threshold:' : 'Smart Money Threshold:'}</strong><br />
+              {isPositionMode ? (
+                <>
+                  • Open Interest ≥ 25 contracts<br />
+                  • Theoretical Premium ≥ $25,000<br />
+                  • Valid price data required
+                </>
+              ) : (
+                <>
+                  • Volume/OI Ratio ≥ 2.5x<br />
+                  • Premium Spent ≥ $25,000<br />
+                  • Minimum Volume: 100 contracts
+                </>
+              )}
             </Typography>
           </Grid>
           <Grid item xs={12} md={4}>
             <Typography variant="body2" color="text.secondary">
-              <strong>Signal Strength:</strong><br />
-              • MODERATE: 2.5x - 4.9x ratio<br />
-              • HIGH: 5.0x - 7.9x ratio<br />  
-              • EXTREME: 8.0x+ ratio
+              <strong>{isPositionMode ? 'Position Size:' : 'Signal Strength:'}</strong><br />
+              {isPositionMode ? (
+                <>
+                  • SMALL: 25-99 contracts<br />
+                  • MEDIUM: 100-499 contracts<br />
+                  • LARGE: 500+ contracts
+                </>
+              ) : (
+                <>
+                  • MODERATE: 2.5x - 4.9x ratio<br />
+                  • HIGH: 5.0x - 7.9x ratio<br />  
+                  • EXTREME: 8.0x+ ratio
+                </>
+              )}
             </Typography>
           </Grid>
           <Grid item xs={12} md={4}>
             <Typography variant="body2" color="text.secondary">
               <strong>Data Source:</strong><br />
               • Yahoo Finance API<br />
-              • Real-time options chains<br />
+              • {isPositionMode ? 'Historical positions data' : 'Real-time options chains'}<br />
               • Updated: {formatDate(data.analysisDate)}
             </Typography>
           </Grid>

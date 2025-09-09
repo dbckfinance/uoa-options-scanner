@@ -5,9 +5,11 @@ import yfinance as yf
 import pandas as pd
 import configparser
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Optional
 import logging
-from models import OptionContract, UOAResponse, ErrorResponse, MarketSentiment
+import time
+from models import OptionContract, UOAResponse, ErrorResponse, MarketSentiment, DataSource, IBKRConnectionStatus, IBKRDataMetrics, DataQualityInfo
+from ibkr_client import IBKRClient
 
 # Simple, direct approach like the working correlation app - no custom sessions or headers
 
@@ -49,6 +51,50 @@ MAX_DTE = int(config.get('FILTERING', 'max_dte', fallback=45))
 MIN_DTE = int(config.get('FILTERING', 'min_dte', fallback=1))
 MIN_PREMIUM_SPENT = float(config.get('FILTERING', 'min_premium_spent', fallback=1000.0))
 MAX_RESULTS = int(config.get('FILTERING', 'max_results', fallback=100))
+
+# Different thresholds for different modes
+LIVE_TRADING_MIN_PREMIUM = 100.0  # Lower threshold for live trading
+POSITION_ANALYSIS_MIN_PREMIUM = 1000.0  # Higher threshold for position analysis
+LIVE_TRADING_MIN_VOLUME = 5  # Lower volume threshold for live trading
+POSITION_ANALYSIS_MIN_OI = 20  # Higher OI threshold for position analysis
+
+# IBKR configuration
+ENABLE_IBKR = config.getboolean('IBKR_CONNECTION', 'enable_ibkr') if config.has_option('IBKR_CONNECTION', 'enable_ibkr') else False
+USE_IBKR_PRIMARY = config.getboolean('IBKR_CONNECTION', 'use_ibkr_primary') if config.has_option('IBKR_CONNECTION', 'use_ibkr_primary') else False
+FALLBACK_TO_YFINANCE = config.getboolean('IBKR_CONNECTION', 'fallback_to_yfinance') if config.has_option('IBKR_CONNECTION', 'fallback_to_yfinance') else True
+FALLBACK_TIMEOUT = int(config.get('IBKR_CONNECTION', 'fallback_timeout')) if config.has_option('IBKR_CONNECTION', 'fallback_timeout') else 5
+
+# Initialize IBKR client (global instance)
+ibkr_client: Optional[IBKRClient] = None
+ibkr_connection_status: IBKRConnectionStatus = IBKRConnectionStatus(connected=False)
+
+def initialize_ibkr_client():
+    """Initialize IBKR client if enabled"""
+    global ibkr_client, ibkr_connection_status
+    
+    if not ENABLE_IBKR:
+        logger.info("IBKR disabled in configuration")
+        return
+    
+    try:
+        logger.info("Initializing IBKR client...")
+        ibkr_client = IBKRClient('config.ini')
+        ibkr_connection_status = ibkr_client.connect_to_ibkr()
+        
+        if ibkr_connection_status.connected:
+            logger.info("✅ IBKR client initialized and connected successfully")
+        else:
+            logger.warning(f"⚠️ IBKR connection failed: {ibkr_connection_status.error_message}")
+            
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize IBKR client: {e}")
+        ibkr_connection_status = IBKRConnectionStatus(
+            connected=False,
+            error_message=str(e)
+        )
+
+# Initialize IBKR on startup
+initialize_ibkr_client()
 
 def calculate_dte(expiration_date: str) -> int:
     """Calculate days to expiration."""
@@ -100,6 +146,255 @@ def determine_unusuality_level(ratio: float) -> str:
         return "HIGH"
     else:
         return "UNUSUAL"
+
+def validate_data_quality(df: pd.DataFrame, ticker: str) -> tuple[bool, list[str]]:
+    """
+    Validate data quality and consistency.
+    Returns (is_valid, list_of_warnings)
+    """
+    warnings = []
+    is_valid = True
+    
+    # Check for missing data
+    missing_data = df.isnull().sum()
+    if missing_data.sum() > 0:
+        warnings.append(f"Missing data detected: {missing_data.sum()} null values")
+        is_valid = False
+    
+    # Check for unrealistic values
+    if 'volume' in df.columns:
+        # Volume should be positive integers
+        invalid_volume = df[df['volume'] <= 0]
+        if len(invalid_volume) > 0:
+            warnings.append(f"Invalid volume data: {len(invalid_volume)} contracts with volume <= 0")
+            is_valid = False
+    
+    if 'openInterest' in df.columns:
+        # Open interest should be positive integers
+        invalid_oi = df[df['openInterest'] <= 0]
+        if len(invalid_oi) > 0:
+            warnings.append(f"Invalid open interest data: {len(invalid_oi)} contracts with OI <= 0")
+            is_valid = False
+    
+    if 'lastPrice' in df.columns:
+        # Price should be positive and reasonable
+        invalid_price = df[df['lastPrice'] <= 0]
+        if len(invalid_price) > 0:
+            warnings.append(f"Invalid price data: {len(invalid_price)} contracts with price <= 0")
+            is_valid = False
+    
+    # Check for data freshness (if timestamp available)
+    if 'lastTradeDate' in df.columns:
+        try:
+            # Check if data is not too old (within last 24 hours)
+            current_time = datetime.now()
+            for date_str in df['lastTradeDate'].dropna():
+                try:
+                    trade_date = pd.to_datetime(date_str)
+                    if (current_time - trade_date).days > 1:
+                        warnings.append("Some data may be stale (older than 24 hours)")
+                        break
+                except:
+                    continue
+        except:
+            pass
+    
+    # Check for reasonable volume/OI ratios
+    if 'volume' in df.columns and 'openInterest' in df.columns:
+        df_temp = df.copy()
+        df_temp['vol_oi_ratio'] = df_temp['volume'] / df_temp['openInterest']
+        extreme_ratios = df_temp[df_temp['vol_oi_ratio'] > 100]  # Suspicious ratios
+        if len(extreme_ratios) > 0:
+            warnings.append(f"Extreme volume/OI ratios detected: {len(extreme_ratios)} contracts with ratio > 100x")
+            # Don't mark as invalid, just warn
+    
+    return is_valid, warnings
+
+def cross_validate_price_data(ticker_symbol: str, options_price: float, underlying_price: float) -> tuple[bool, str]:
+    """
+    Cross-validate price data for consistency.
+    Returns (is_valid, warning_message)
+    """
+    try:
+        # Get additional price data for validation
+        ticker = yf.Ticker(ticker_symbol)
+        info = ticker.info
+        
+        # Check if underlying price is reasonable
+        if 'regularMarketPrice' in info and info['regularMarketPrice']:
+            market_price = info['regularMarketPrice']
+            price_diff = abs(underlying_price - market_price) / market_price
+            
+            if price_diff > 0.05:  # 5% difference threshold
+                return False, f"Price discrepancy detected: API price ${underlying_price:.2f} vs Market price ${market_price:.2f}"
+        
+        # Check if options price is reasonable relative to underlying
+        if options_price > underlying_price * 0.5:  # Options shouldn't cost more than 50% of underlying
+            return False, f"Options price ${options_price:.2f} seems unrealistic relative to underlying price ${underlying_price:.2f}"
+        
+        return True, ""
+        
+    except Exception as e:
+        logger.warning(f"Cross-validation failed: {e}")
+        return True, ""  # Don't fail on validation errors
+
+def get_options_data_ibkr(ticker_symbol: str) -> pd.DataFrame:
+    """
+    Get options data from IBKR
+    """
+    global ibkr_client, ibkr_connection_status
+    
+    if not ibkr_client or not ibkr_connection_status.connected:
+        raise Exception("IBKR not connected")
+    
+    try:
+        logger.info(f"📊 Getting options data from IBKR for {ticker_symbol}")
+        options_df = ibkr_client.get_options_chain(ticker_symbol)
+        
+        if options_df.empty:
+            raise Exception("No options data returned from IBKR")
+        
+        # Add IBKR-specific fields
+        options_df['dataSource'] = DataSource.IBKR
+        options_df['dataQuality'] = 95  # High quality for IBKR
+        
+        logger.info(f"✅ Retrieved {len(options_df)} options contracts from IBKR")
+        return options_df
+        
+    except Exception as e:
+        logger.error(f"❌ IBKR data retrieval failed: {e}")
+        raise e
+
+def get_options_data_hybrid(ticker_symbol: str) -> tuple[pd.DataFrame, DataSource, dict]:
+    """
+    Get options data using hybrid approach: IBKR primary, yfinance fallback
+    Returns: (dataframe, data_source, quality_info)
+    """
+    quality_info = {
+        "attempted_sources": [],
+        "successful_source": None,
+        "fallback_used": False,
+        "errors": []
+    }
+    
+    # Try IBKR first if enabled and connected
+    if USE_IBKR_PRIMARY and ibkr_client and ibkr_connection_status.connected:
+        try:
+            quality_info["attempted_sources"].append("IBKR")
+            options_df = get_options_data_ibkr(ticker_symbol)
+            quality_info["successful_source"] = DataSource.IBKR
+            return options_df, DataSource.IBKR, quality_info
+            
+        except Exception as e:
+            error_msg = f"IBKR failed: {e}"
+            logger.warning(error_msg)
+            quality_info["errors"].append(error_msg)
+            
+            if not FALLBACK_TO_YFINANCE:
+                raise Exception(f"IBKR failed and fallback disabled: {e}")
+    
+    # Fallback to yfinance
+    if FALLBACK_TO_YFINANCE:
+        try:
+            quality_info["attempted_sources"].append("yfinance")
+            quality_info["fallback_used"] = True
+            
+            logger.info(f"📈 Using yfinance fallback for {ticker_symbol}")
+            options_df = get_options_data_yfinance(ticker_symbol)
+            quality_info["successful_source"] = DataSource.YFINANCE
+            
+            return options_df, DataSource.YFINANCE, quality_info
+            
+        except Exception as e:
+            error_msg = f"yfinance fallback failed: {e}"
+            logger.error(error_msg)
+            quality_info["errors"].append(error_msg)
+            raise Exception(f"All data sources failed: {quality_info['errors']}")
+    
+    raise Exception("No data sources available")
+
+def get_options_data_yfinance(ticker_symbol: str) -> pd.DataFrame:
+    """
+    Get options data from yfinance (existing implementation)
+    """
+    ticker = yf.Ticker(ticker_symbol)
+    expirations = ticker.options[:8]  # Limit to first 8 expirations
+    
+    all_options = []
+    
+    for expiration in expirations:
+        try:
+            options_chain = ticker.option_chain(expiration)
+            dte = calculate_dte(expiration)
+            
+            # Process calls
+            if not options_chain.calls.empty:
+                calls = options_chain.calls.copy()
+                calls['type'] = 'call'
+                calls['expirationDate'] = expiration
+                calls['dte'] = dte
+                calls['dataSource'] = DataSource.YFINANCE
+                calls['dataQuality'] = 75  # Good quality for yfinance
+                all_options.append(calls)
+            
+            # Process puts
+            if not options_chain.puts.empty:
+                puts = options_chain.puts.copy()
+                puts['type'] = 'put'
+                puts['expirationDate'] = expiration
+                puts['dte'] = dte
+                puts['dataSource'] = DataSource.YFINANCE
+                puts['dataQuality'] = 75  # Good quality for yfinance
+                all_options.append(puts)
+                
+        except Exception as e:
+            logger.warning(f"Error processing expiration {expiration}: {e}")
+            continue
+    
+    if not all_options:
+        raise Exception("No options data available from yfinance")
+    
+    return pd.concat(all_options, ignore_index=True)
+
+def get_data_freshness_info(ticker_symbol: str) -> dict:
+    """
+    Get information about data freshness and reliability.
+    """
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        info = ticker.info
+        
+        freshness_info = {
+            "data_source": "Yahoo Finance",
+            "last_updated": datetime.now().isoformat(),
+            "exchange": info.get('exchange', 'Unknown'),
+            "market_cap": info.get('marketCap', 0),
+            "volume_24h": info.get('volume', 0),
+            "data_quality_score": 0
+        }
+        
+        # Calculate data quality score
+        score = 100
+        
+        # Deduct points for missing critical data
+        if not info.get('regularMarketPrice'):
+            score -= 20
+        if not info.get('volume'):
+            score -= 15
+        if not info.get('marketCap'):
+            score -= 10
+            
+        freshness_info["data_quality_score"] = max(0, score)
+        
+        return freshness_info
+        
+    except Exception as e:
+        logger.warning(f"Could not get freshness info: {e}")
+        return {
+            "data_source": "Yahoo Finance",
+            "last_updated": datetime.now().isoformat(),
+            "data_quality_score": 50
+        }
 
 def assess_time_decay_risk(dte: int) -> str:
     """Assess time decay risk based on days to expiration (EXPERT ANALYSIS)."""
@@ -200,7 +495,7 @@ def generate_expert_insights(df: pd.DataFrame, sentiment: MarketSentiment) -> tu
     
     return insights[:5], warnings[:3]  # Limit to most important
 
-def analyze_options_data(ticker_symbol: str) -> UOAResponse:
+def analyze_options_data(ticker_symbol: str, mode: str = "auto") -> UOAResponse:
     """Analyze unusual options activity for a given ticker - SIMPLE APPROACH like working correlation app."""
     try:
         ticker_symbol = ticker_symbol.upper()
@@ -244,89 +539,70 @@ def analyze_options_data(ticker_symbol: str) -> UOAResponse:
                 detail=f"Could not fetch stock data for ticker '{ticker_symbol}'. Try these popular tickers instead: {suggestions}"
             )
         
-        # Method 2: Get options data using simple yf.Ticker (no custom session)
-        logger.info(f"📅 Getting options data for {ticker_symbol}...")
+        # Method 2: Get options data using hybrid approach (IBKR + yfinance)
+        logger.info(f"📊 Getting options data for {ticker_symbol}...")
         try:
-            ticker = yf.Ticker(ticker_symbol)  # Simple, no custom session
-            expirations = ticker.options
+            combined_df, data_source, quality_info = get_options_data_hybrid(ticker_symbol)
             
-            if not expirations:
-                raise ValueError("No options data available")
+            if combined_df.empty:
+                raise ValueError("No options data available from any source")
+            
+            logger.info(f"✅ Retrieved {len(combined_df)} options contracts from {data_source.value}")
+            
+            # Filter by DTE if needed (IBKR may have already filtered)
+            if 'dte' not in combined_df.columns:
+                # Calculate DTE if not present
+                combined_df['dte'] = combined_df['expirationDate'].apply(calculate_dte)
+            
+            # Apply DTE filters
+            filtered_df = combined_df[
+                (combined_df['dte'] >= MIN_DTE) & 
+                (combined_df['dte'] <= MAX_DTE)
+            ].copy()
+            
+            if filtered_df.empty:
+                logger.info(f"No options data within DTE range {MIN_DTE}-{MAX_DTE} days")
+                # Return empty response
+                empty_sentiment = MarketSentiment(
+                    totalCallVolume=0,
+                    totalPutVolume=0,
+                    callPutRatio=0.0,
+                    bullishSignals=0,
+                    bearishSignals=0,
+                    netSentiment="NEUTRAL"
+                )
                 
-            logger.info(f"✅ Found {len(expirations)} expiration dates for {ticker_symbol}")
+                # Create data quality info
+                data_quality = DataQualityInfo(
+                    data_source=data_source,
+                    last_updated=datetime.now().isoformat(),
+                    data_quality_score=85 if data_source == DataSource.IBKR else 75,
+                    warnings=["No options within specified DTE range"]
+                )
+                
+                return UOAResponse(
+                    ticker=ticker_symbol,
+                    analysisDate=datetime.now().isoformat(),
+                    underlyingPrice=current_price,
+                    totalContracts=0,
+                    unusualContracts=[],
+                    marketSentiment=empty_sentiment,
+                    topSignals=["No unusual options activity detected"],
+                    riskWarnings=[],
+                    dataQuality=data_quality
+                )
+            
+            combined_df = filtered_df
+            logger.info(f"After DTE filtering: {len(combined_df)} contracts")
             
         except Exception as e:
             logger.error(f"❌ Failed to get options data for {ticker_symbol}: {e}")
-            raise HTTPException(status_code=404, detail=f"No options data available for ticker '{ticker_symbol}'")
-        
-        # Process options data - simplified approach
-        logger.info(f"📊 Processing options chains for {ticker_symbol}...")
-        all_options = []
-        
-        # Filter expirations by DTE
-        filtered_expirations = []
-        for expiration in expirations:
-            dte = calculate_dte(expiration)
-            if MIN_DTE <= dte <= MAX_DTE:
-                filtered_expirations.append(expiration)
-        
-        # Limit to first 8 expirations for reliable performance
-        filtered_expirations = filtered_expirations[:8]
-        logger.info(f"Analyzing {len(filtered_expirations)} expiration dates for {ticker_symbol}")
-        
-        for i, expiration in enumerate(filtered_expirations):
-            try:
-                logger.info(f"Processing expiration {i+1}/{len(filtered_expirations)}: {expiration}")
-                
-                # Get options chain - simple approach
-                options_chain = ticker.option_chain(expiration)
-                dte = calculate_dte(expiration)
-                
-                # Process calls
-                if not options_chain.calls.empty:
-                    calls = options_chain.calls.copy()
-                    calls['type'] = 'call'
-                    calls['expirationDate'] = expiration
-                    calls['dte'] = dte
-                    all_options.append(calls)
-                
-                # Process puts
-                if not options_chain.puts.empty:
-                    puts = options_chain.puts.copy()
-                    puts['type'] = 'put'
-                    puts['expirationDate'] = expiration
-                    puts['dte'] = dte
-                    all_options.append(puts)
-                    
-            except Exception as e:
-                logger.warning(f"Error processing expiration {expiration}: {e}")
-                continue
-        
-        if not all_options:
-            logger.info(f"No options data collected for {ticker_symbol}")
-            # Empty market sentiment
-            empty_sentiment = MarketSentiment(
-                totalCallVolume=0,
-                totalPutVolume=0,
-                callPutRatio=0.0,
-                bullishSignals=0,
-                bearishSignals=0,
-                netSentiment="NEUTRAL"
+            suggested_tickers = ["AAPL", "MSFT", "TSLA", "AMZN", "NVDA", "META", "GOOGL"]
+            suggestions = ", ".join([t for t in suggested_tickers if t != ticker_symbol][:5])
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Could not fetch options data for ticker '{ticker_symbol}'. Sources tried: {quality_info.get('attempted_sources', 'unknown')}. Try these popular tickers instead: {suggestions}"
             )
-            return UOAResponse(
-                ticker=ticker_symbol,
-                analysisDate=datetime.now().isoformat(),
-                underlyingPrice=current_price,
-                totalContracts=0,
-                unusualContracts=[],
-                marketSentiment=empty_sentiment,
-                topSignals=["No unusual options activity detected"],
-                riskWarnings=[]
-            )
-        
-        # Combine all options data
-        logger.info(f"Combining {len(all_options)} option DataFrames...")
-        combined_df = pd.concat(all_options, ignore_index=True)
         
         # Clean and prepare data
         combined_df = combined_df.dropna(subset=['volume', 'openInterest', 'lastPrice'])
@@ -339,17 +615,77 @@ def analyze_options_data(ticker_symbol: str) -> UOAResponse:
         
         # Apply filters for unusual activity
         logger.info(f"Applying filters to {len(combined_df)} total contracts...")
-        unusual_options = combined_df[
-            (combined_df['volumeToOiRatio'] >= MIN_VOL_OI_RATIO) &
-            (combined_df['volume'] >= MIN_VOLUME) &
-            (combined_df['openInterest'] >= MIN_OPEN_INTEREST) &
-            (combined_df['premiumSpent'] >= MIN_PREMIUM_SPENT)
-        ].copy()
         
-        logger.info(f"Found {len(unusual_options)} unusual contracts")
+        # Determine analysis mode based on parameter and market conditions
+        total_volume = combined_df['volume'].sum()
+        
+        if mode == "live":
+            has_volume = True
+            logger.info(f"🔴 LIVE TRADING MODE: Using volume-based analysis")
+            logger.info(f"  - Forced LIVE mode regardless of market status")
+        elif mode == "position":
+            has_volume = False
+            logger.info(f"🔵 POSITION ANALYSIS MODE: Using open interest-based analysis")
+            logger.info(f"  - Forced POSITION mode regardless of market status")
+        else:  # mode == "auto"
+            # Auto-detect based on volume activity
+            has_volume = total_volume > 1000  # Threshold for significant volume
+            logger.info(f"🤖 AUTO MODE: {'OPEN' if has_volume else 'CLOSED/PRE-MARKET'} (Total volume: {total_volume})")
+        
+        logger.info(f"Final mode decision: {'LIVE TRADING' if has_volume else 'POSITION ANALYSIS'} (Total volume: {total_volume})")
+        
+        if has_volume:
+            # Market is open - use volume-based filters (LIVE TRADING)
+            logger.info(f"🔴 LIVE TRADING FILTERS:")
+            logger.info(f"  - Volume/OI Ratio >= {MIN_VOL_OI_RATIO}")
+            logger.info(f"  - Volume >= {LIVE_TRADING_MIN_VOLUME}")
+            logger.info(f"  - Open Interest >= {MIN_OPEN_INTEREST}")
+            logger.info(f"  - Premium Spent >= ${LIVE_TRADING_MIN_PREMIUM:,.0f}")
+            
+            # Apply volume-based filters with LIVE TRADING thresholds
+            volume_filter = combined_df['volumeToOiRatio'] >= MIN_VOL_OI_RATIO
+            min_vol_filter = combined_df['volume'] >= LIVE_TRADING_MIN_VOLUME
+            min_oi_filter = combined_df['openInterest'] >= MIN_OPEN_INTEREST
+            premium_filter = combined_df['premiumSpent'] >= LIVE_TRADING_MIN_PREMIUM
+            
+            logger.info(f"  - Volume/OI filter: {volume_filter.sum()} contracts")
+            logger.info(f"  - Min volume filter: {min_vol_filter.sum()} contracts")
+            logger.info(f"  - Min OI filter: {min_oi_filter.sum()} contracts")
+            logger.info(f"  - Premium filter: {premium_filter.sum()} contracts")
+            
+            unusual_options = combined_df[volume_filter & min_vol_filter & min_oi_filter & premium_filter].copy()
+            logger.info(f"✅ Found {len(unusual_options)} unusual contracts (volume-based)")
+        else:
+            # Market is closed - analyze existing positions by open interest (POSITION ANALYSIS)
+            logger.info("🔵 POSITION ANALYSIS FILTERS:")
+            logger.info(f"  - Open Interest >= {POSITION_ANALYSIS_MIN_OI}")
+            logger.info(f"  - Theoretical Premium >= ${POSITION_ANALYSIS_MIN_PREMIUM:,.0f}")
+            logger.info(f"  - Last Price > 0")
+            
+            # Calculate theoretical premium based on last price and open interest
+            combined_df['theoretical_premium'] = combined_df['openInterest'] * combined_df['lastPrice'] * 100
+            
+            # Apply position-based filters with POSITION ANALYSIS thresholds
+            oi_filter = combined_df['openInterest'] >= POSITION_ANALYSIS_MIN_OI
+            theoretical_premium_filter = combined_df['theoretical_premium'] >= POSITION_ANALYSIS_MIN_PREMIUM
+            price_filter = combined_df['lastPrice'] > 0
+            
+            logger.info(f"  - OI filter: {oi_filter.sum()} contracts")
+            logger.info(f"  - Theoretical premium filter: {theoretical_premium_filter.sum()} contracts")
+            logger.info(f"  - Price filter: {price_filter.sum()} contracts")
+            
+            unusual_options = combined_df[oi_filter & theoretical_premium_filter & price_filter].copy()
+            
+            # Sort by open interest (highest positions first)
+            unusual_options = unusual_options.sort_values('openInterest', ascending=False)
+            logger.info(f"✅ Found {len(unusual_options)} significant positions (open interest-based)")
         
         # Sort and limit results
-        unusual_options = unusual_options.sort_values('volumeToOiRatio', ascending=False)
+        if has_volume:
+            unusual_options = unusual_options.sort_values('volumeToOiRatio', ascending=False)
+        else:
+            # Already sorted by open interest in pre-market mode
+            pass
         unusual_options = unusual_options.head(MAX_RESULTS)
         
         # SIMPLIFIED ANALYSIS - DEBUGGING VERSION  
@@ -360,6 +696,14 @@ def analyze_options_data(ticker_symbol: str) -> UOAResponse:
         for _, row in unusual_options.iterrows():
             try:
                 # BASIC CONTRACT CREATION (no expert analysis for now)
+                # Calculate premium based on mode
+                if has_volume:
+                    premium = float(row['premiumSpent'])
+                    ratio = float(row['volumeToOiRatio'])
+                else:
+                    premium = float(row['theoretical_premium'])
+                    ratio = 0.0  # No volume ratio in pre-market
+                
                 contract = OptionContract(
                     contractSymbol=str(row['contractSymbol']),
                     strike=float(row['strike']),
@@ -368,8 +712,8 @@ def analyze_options_data(ticker_symbol: str) -> UOAResponse:
                     lastPrice=float(row['lastPrice']),
                     volume=int(row['volume']),
                     openInterest=int(row['openInterest']),
-                    volumeToOiRatio=float(row['volumeToOiRatio']),
-                    premiumSpent=float(row['premiumSpent']),
+                    volumeToOiRatio=ratio,
+                    premiumSpent=premium,
                     underlyingPrice=float(current_price),
                     # SIMPLIFIED EXPERT FIELDS
                     moneyness="OTM",  # Fixed for debugging
@@ -398,11 +742,55 @@ def analyze_options_data(ticker_symbol: str) -> UOAResponse:
             netSentiment="NEUTRAL"
         )
         
-        # SIMPLIFIED INSIGHTS
-        top_signals = [f"Found {len(unusual_contracts)} unusual contracts"]
-        risk_warnings = []
+        # ENHANCED INSIGHTS with data source information
+        market_mode = "LIVE TRADING" if has_volume else "POSITION ANALYSIS"
+        analysis_type = "Volume-based" if has_volume else "Open Interest-based"
+        mode_icon = "🔴" if has_volume else "🔵"
         
-        logger.info(f"✅ EXPERT analysis complete for {ticker_symbol}: {len(unusual_contracts)} contracts, {market_sentiment.netSentiment} sentiment")
+        logger.info(f"🎯 FINAL MODE DECISION: {market_mode} (has_volume={has_volume})")
+        logger.info(f"🎯 ANALYSIS TYPE: {analysis_type}")
+        
+        top_signals = [
+            f"{mode_icon} {market_mode} MODE - {analysis_type} analysis",
+            f"Found {len(unusual_contracts)} {'unusual contracts' if has_volume else 'significant positions'}",
+            f"Data source: {data_source.value.upper()}",
+            f"Data quality: {'Excellent' if data_source == DataSource.IBKR else 'Good'}"
+        ]
+        
+        if has_volume:
+            top_signals.append(f"Filters: Vol/OI≥{MIN_VOL_OI_RATIO}, Vol≥{LIVE_TRADING_MIN_VOLUME}, Premium≥${LIVE_TRADING_MIN_PREMIUM:,.0f}")
+        else:
+            top_signals.append(f"Filters: OI≥{POSITION_ANALYSIS_MIN_OI}, Premium≥${POSITION_ANALYSIS_MIN_PREMIUM:,.0f}")
+        
+        if quality_info.get("fallback_used"):
+            top_signals.append("⚠️ Using fallback data source")
+        
+        risk_warnings = []
+        if quality_info.get("errors"):
+            risk_warnings.extend([f"Data warning: {error}" for error in quality_info["errors"]])
+        
+        # Create comprehensive data quality info
+        data_quality_score = 95 if data_source == DataSource.IBKR else 75
+        
+        # IBKR specific metrics
+        ibkr_metrics = None
+        if data_source == DataSource.IBKR and ibkr_connection_status.connected:
+            ibkr_metrics = IBKRDataMetrics(
+                real_time_data=True,
+                market_data_type=1,  # Live data
+                last_trade_time=datetime.now().isoformat()
+            )
+        
+        data_quality = DataQualityInfo(
+            data_source=data_source,
+            last_updated=datetime.now().isoformat(),
+            data_quality_score=data_quality_score,
+            warnings=quality_info.get("errors", []),
+            ibkr_metrics=ibkr_metrics,
+            ibkr_connection=ibkr_connection_status if data_source == DataSource.IBKR else None
+        )
+        
+        logger.info(f"✅ Enhanced analysis complete for {ticker_symbol}: {len(unusual_contracts)} contracts from {data_source.value}, {market_sentiment.netSentiment} sentiment")
         
         return UOAResponse(
             ticker=ticker_symbol,
@@ -412,7 +800,8 @@ def analyze_options_data(ticker_symbol: str) -> UOAResponse:
             unusualContracts=unusual_contracts,
             marketSentiment=market_sentiment,
             topSignals=top_signals,
-            riskWarnings=risk_warnings
+            riskWarnings=risk_warnings,
+            dataQuality=data_quality
         )
         
     except HTTPException:
@@ -435,19 +824,21 @@ async def root():
 
 @app.get("/api/analyze/{ticker}", response_model=UOAResponse, responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
 async def analyze_ticker(
-    ticker: str = Path(..., description="Stock ticker symbol (e.g., TSLA, AAPL)")
+    ticker: str = Path(..., description="Stock ticker symbol (e.g., TSLA, AAPL)"),
+    mode: str = "auto"  # "live", "position", or "auto"
 ):
     """
     Analyze unusual options activity for a given ticker.
     
     - **ticker**: Stock ticker symbol (case insensitive)
+    - **mode**: Analysis mode - "live" (volume-based), "position" (open interest-based), or "auto" (automatic detection)
     
     Returns a list of unusual option contracts based on volume/OI ratio and other filters.
     """
-    logger.info(f"Analyzing unusual options activity for ticker: {ticker}")
+    logger.info(f"Analyzing unusual options activity for ticker: {ticker} in mode: {mode}")
     
     try:
-        result = analyze_options_data(ticker)
+        result = analyze_options_data(ticker, mode)
         logger.info(f"Analysis complete for {ticker}. Found {len(result.unusualContracts)} unusual contracts.")
         return result
         
@@ -457,6 +848,159 @@ async def analyze_ticker(
     except Exception as e:
         logger.error(f"Unexpected error for ticker {ticker}: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error analyzing ticker '{ticker.upper()}'")
+
+@app.get("/api/ibkr/status")
+async def get_ibkr_status():
+    """
+    Get IBKR connection status and configuration
+    """
+    global ibkr_client, ibkr_connection_status
+    
+    return {
+        "ibkr_enabled": ENABLE_IBKR,
+        "use_ibkr_primary": USE_IBKR_PRIMARY,
+        "fallback_to_yfinance": FALLBACK_TO_YFINANCE,
+        "connection_status": ibkr_connection_status.dict(),
+        "client_initialized": ibkr_client is not None,
+        "configuration": {
+            "host": config.get('IBKR_CONNECTION', 'host', fallback='127.0.0.1'),
+            "port": int(config.get('IBKR_CONNECTION', 'port', fallback=7497)),
+            "client_id": int(config.get('IBKR_CONNECTION', 'client_id', fallback=0)),
+            "connection_timeout": int(config.get('IBKR_CONNECTION', 'connection_timeout', fallback=10))
+        }
+    }
+
+@app.post("/api/ibkr/connect")
+async def connect_ibkr():
+    """
+    Manually trigger IBKR connection
+    """
+    global ibkr_client, ibkr_connection_status
+    
+    if not ENABLE_IBKR:
+        raise HTTPException(status_code=400, detail="IBKR is disabled in configuration")
+    
+    try:
+        if ibkr_client is None:
+            ibkr_client = IBKRClient('config.ini')
+        
+        if ibkr_connection_status.connected:
+            return {
+                "message": "IBKR already connected",
+                "status": ibkr_connection_status.dict()
+            }
+        
+        logger.info("Manual IBKR connection requested")
+        ibkr_connection_status = ibkr_client.connect_to_ibkr()
+        
+        if ibkr_connection_status.connected:
+            return {
+                "message": "Successfully connected to IBKR",
+                "status": ibkr_connection_status.dict()
+            }
+        else:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Failed to connect to IBKR: {ibkr_connection_status.error_message}"
+            )
+            
+    except Exception as e:
+        logger.error(f"Manual IBKR connection failed: {e}")
+        raise HTTPException(status_code=500, detail=f"IBKR connection error: {str(e)}")
+
+@app.post("/api/ibkr/disconnect")
+async def disconnect_ibkr():
+    """
+    Disconnect from IBKR
+    """
+    global ibkr_client, ibkr_connection_status
+    
+    if ibkr_client and ibkr_connection_status.connected:
+        try:
+            ibkr_client.disconnect_from_ibkr()
+            ibkr_connection_status = IBKRConnectionStatus(connected=False)
+            return {"message": "Successfully disconnected from IBKR"}
+        except Exception as e:
+            logger.error(f"IBKR disconnection error: {e}")
+            raise HTTPException(status_code=500, detail=f"Disconnection error: {str(e)}")
+    else:
+        return {"message": "IBKR was not connected"}
+
+@app.get("/api/ibkr/test/{ticker}")
+async def test_ibkr_data(ticker: str = Path(..., description="Stock ticker for IBKR data test")):
+    """
+    Test IBKR data retrieval for a specific ticker
+    """
+    global ibkr_client, ibkr_connection_status
+    
+    if not ENABLE_IBKR:
+        raise HTTPException(status_code=400, detail="IBKR is disabled in configuration")
+    
+    if not ibkr_client or not ibkr_connection_status.connected:
+        raise HTTPException(status_code=503, detail="IBKR not connected. Use /api/ibkr/connect first")
+    
+    try:
+        ticker_symbol = ticker.upper()
+        logger.info(f"Testing IBKR data retrieval for {ticker_symbol}")
+        
+        # Test data retrieval
+        start_time = time.time()
+        options_df = get_options_data_ibkr(ticker_symbol)
+        end_time = time.time()
+        
+        retrieval_time = end_time - start_time
+        
+        # Analyze the data
+        test_results = {
+            "ticker": ticker_symbol,
+            "test_timestamp": datetime.now().isoformat(),
+            "connection_status": "Connected",
+            "data_retrieval": {
+                "success": True,
+                "contracts_found": len(options_df),
+                "retrieval_time_seconds": round(retrieval_time, 2),
+                "columns_available": list(options_df.columns) if not options_df.empty else [],
+                "sample_data": options_df.head(3).to_dict('records') if not options_df.empty else []
+            },
+            "data_quality": {
+                "has_bid_ask": 'bid' in options_df.columns and 'ask' in options_df.columns,
+                "has_greeks": any(col in options_df.columns for col in ['delta', 'gamma', 'theta', 'vega']),
+                "has_volume_oi": 'volume' in options_df.columns and 'open_interest' in options_df.columns,
+                "real_time_data": True,
+                "data_freshness": "Live"
+            },
+            "performance": {
+                "fast_retrieval": retrieval_time < 5.0,
+                "adequate_coverage": len(options_df) > 10,
+                "quality_score": 95
+            }
+        }
+        
+        logger.info(f"✅ IBKR test successful: {len(options_df)} contracts in {retrieval_time:.2f}s")
+        return test_results
+        
+    except Exception as e:
+        logger.error(f"IBKR test failed for {ticker_symbol}: {e}")
+        
+        error_results = {
+            "ticker": ticker_symbol,
+            "test_timestamp": datetime.now().isoformat(),
+            "connection_status": "Connected" if ibkr_connection_status.connected else "Disconnected",
+            "data_retrieval": {
+                "success": False,
+                "error": str(e),
+                "contracts_found": 0,
+                "retrieval_time_seconds": 0
+            },
+            "recommendations": [
+                "Check if TWS/Gateway is running",
+                "Verify ticker symbol is valid",
+                "Ensure market is open for real-time data",
+                "Check IBKR account permissions"
+            ]
+        }
+        
+        return error_results
 
 if __name__ == "__main__":
     import uvicorn

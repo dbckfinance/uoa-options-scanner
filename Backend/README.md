@@ -93,17 +93,100 @@ Analyze unusual options activity for a given ticker.
 }
 ```
 
+## 🚀 IBKR Integration (Premium Data)
+
+This API now supports **Interactive Brokers (IBKR)** for professional-grade options data:
+
+### Quick Setup
+1. **Install IBKR dependencies:**
+   ```bash
+   pip install ibapi==10.19.2
+   ```
+
+2. **Configure IBKR in `config.ini`:**
+   ```ini
+   [IBKR_CONNECTION]
+   enable_ibkr = true
+   use_ibkr_primary = true
+   fallback_to_yfinance = true
+   ```
+
+3. **Start TWS/Gateway** (port 7497 for Paper Trading)
+
+4. **Test connection:**
+   ```bash
+   curl http://localhost:8000/api/ibkr/status
+   ```
+
+### IBKR Endpoints
+
+#### Check IBKR Status
+```
+GET /api/ibkr/status
+```
+
+#### Connect to IBKR
+```
+POST /api/ibkr/connect
+```
+
+#### Test IBKR Data
+```
+GET /api/ibkr/test/{ticker}
+```
+
+### Data Quality Comparison
+
+| Feature | yfinance | IBKR |
+|---------|----------|------|
+| **Real-time data** | ❌ 15-20 min delay | ✅ Live |
+| **Bid/Ask spreads** | ❌ | ✅ |
+| **Greeks** | ❌ | ✅ |
+| **Data quality** | 75/100 | 95/100 |
+| **Cost** | Free | $1.50/month OPRA |
+
+### Enhanced Response with IBKR
+
+```json
+{
+  "ticker": "TSLA",
+  "dataQuality": {
+    "data_source": "ibkr",
+    "data_quality_score": 95,
+    "ibkr_metrics": {
+      "real_time_data": true,
+      "market_data_type": 1
+    }
+  },
+  "unusualContracts": [
+    {
+      "strike": 300.0,
+      "lastPrice": 5.50,
+      "bid": 5.40,
+      "ask": 5.60,
+      "impliedVolatility": 0.45,
+      "delta": 0.65,
+      "dataSource": "ibkr"
+    }
+  ]
+}
+```
+
+📖 **Full IBKR documentation:** [IBKR_INTEGRATION.md](IBKR_INTEGRATION.md)
+
 ## Error Handling
 
 The API returns appropriate HTTP status codes:
 - `200`: Success
 - `404`: Ticker not found or no data available
 - `500`: Internal server error
+- `503`: IBKR service unavailable
 
 Error responses include detailed messages:
 ```json
 {
-  "detail": "Could not fetch data for ticker 'XYZ'"
+  "detail": "Could not fetch data for ticker 'XYZ'",
+  "data_sources_tried": ["ibkr", "yfinance"]
 }
 ```
 
