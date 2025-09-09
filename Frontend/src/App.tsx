@@ -137,7 +137,7 @@ const App: React.FC = () => {
       setResults(data);
       
       // Show success snackbar
-      if (data.unusualContracts.length === 0) {
+      if (data.unusualContracts && data.unusualContracts.length === 0) {
         setSnackbarOpen(true);
       }
     } catch (err) {
